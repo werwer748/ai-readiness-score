@@ -2,6 +2,11 @@
 
 All notable changes to this skill. Versions follow [Semantic Versioning](https://semver.org/): a change to the rubric or scoring math is at least a minor bump, because scores from different versions are not directly comparable.
 
+## [0.1.1] - 2026-09-30
+
+### Fixed
+- Windows: probe trail paths were reported with backslashes (`src\main.py`), which broke revisit detection and display. They are now POSIX-style.
+
 ## [0.1.0] - 2026-09-30
 
 ### Added

@@ -48,8 +48,9 @@ def short_target(inp, repo_strings):
             val = val.strip().splitlines()[0]
             for root in repo_strings:
                 for form in (root, root.replace("\\", "/")):
-                    if key in PATH_KEYS:  # a path argument: make it repo-relative
+                    if key in PATH_KEYS:  # a path argument: make it repo-relative, POSIX-style
                         val = val.replace(form + "/", "").replace(form + "\\", "").replace(form, ".")
+                        val = val.replace("\\", "/")
                     else:  # inside a command or pattern: keep it readable as a path
                         val = val.replace(form, ".")
             return val[:140]

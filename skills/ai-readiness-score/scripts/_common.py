@@ -6,7 +6,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = "0.1.0"  # keep in sync with CHANGELOG.md; recorded in every score.json
+VERSION = "0.1.1"  # keep in sync with CHANGELOG.md; recorded in every score.json
 
 
 def use_utf8_stdout():
