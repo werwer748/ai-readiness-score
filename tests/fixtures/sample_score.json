@@ -1,0 +1,46 @@
+{
+ "schema_version": 1,
+ "skill_version": "0.1.0",
+ "repo": "/home/dev/sample-app",
+ "repo_name": "sample-app",
+ "generated_at": "2026-09-30T09:00:00+00:00",
+ "mode": "full",
+ "lang": "ko",
+ "probe_model": "haiku",
+ "summary": "문서와 테스트 기반은 탄탄하지만, 설계 이유와 로컬 설정 같은 암묵지가 문서에 없어서 새 에이전트가 환경 설정 질문에서 자주 헤맵니다.",
+ "categories": [
+  {"id": 1, "name": "Navigation", "score": 12, "verdict": "진입점은 명확하지만 plugins/ 하위 구조 설명이 없습니다.",
+   "findings": [{"type": "strength", "text": "README에 진입점과 디렉토리 지도가 있음", "evidence": ["README.md:12"]},
+                {"type": "gap", "text": "plugins/ 하위 모듈의 역할이 문서화되지 않음", "evidence": ["plugins/"]}],
+   "fixes": ["CLAUDE.md에 plugins/ 디렉토리 지도 3줄 추가"]},
+  {"id": 2, "name": "Context Quality", "score": 15, "verdict": "명령은 정확하지만 규칙이 여러 파일에 흩어져 있습니다.",
+   "findings": [{"type": "strength", "text": "빌드·테스트 명령이 실제로 동작함", "evidence": ["CLAUDE.md:4"]}], "fixes": []},
+  {"id": 3, "name": "Tribal Knowledge", "score": 9, "verdict": "설계 이유(ADR)와 로컬 설정 전제가 없습니다.",
+   "findings": [{"type": "gap", "text": "JDK 경로 설정이 로그에서 3번 반복 질문됨", "evidence": ["gradle.properties"]}],
+   "fixes": ["docs/setup.md에 JDK 설치·경로 설정 절차 추가"]},
+  {"id": 4, "name": "Dependency Mapping", "score": 13, "findings": [], "fixes": []},
+  {"id": 5, "name": "Verification Gates", "score": 12, "findings": [], "fixes": ["CI에 lint 단계 추가"]},
+  {"id": 6, "name": "Freshness", "score": 6, "findings": [{"type": "gap", "text": "CLAUDE.md가 참조하는 plugins/jcef-plugin 경로가 없음", "evidence": [".claude/rules/jcef-preview.md"]}], "fixes": []},
+  {"id": 7, "name": "Agent Outcomes", "score": null}
+ ],
+ "probes": [
+  {"id": "N1-01", "category": 1, "kind": "base", "question": "XLSX 파싱의 진입점은?", "expected": ["format/XlsxReader.kt"], "answer": "src/main/.../XlsxReader.kt", "correct": true, "steps": 4,
+   "trail": [{"n":1,"tool":"Read","target":"CLAUDE.md"},{"n":2,"tool":"Glob","target":"**/*Reader*.kt"},{"n":3,"tool":"Read","target":"src/main/kotlin/format/XlsxReader.kt"},{"n":4,"tool":"Read","target":"src/main/kotlin/format/SpreadsheetReaders.kt"}], "dead_ends": [], "revisits": []},
+  {"id": "N1-02", "category": 1, "kind": "base", "question": "새 파일 타입을 추가하려면 어느 파일을 건드려야 하나?", "expected": ["FileTypeAndTabs.kt", "plugin.xml"], "correct": true, "steps": 13,
+   "trail": [{"n":1,"tool":"Read","target":"README.md"},{"n":2,"tool":"Grep","target":"FileType","empty":true},{"n":3,"tool":"Glob","target":"**/*.xml"},{"n":4,"tool":"Read","target":"src/main/resources/META-INF/plugin.xml"},{"n":5,"tool":"Grep","target":"fileType"},{"n":6,"tool":"Read","target":"src/main/kotlin/editor/SheetPanel.kt"},{"n":7,"tool":"Read","target":"src/main/kotlin/editor/SourcePanel.kt"},{"n":8,"tool":"Read","target":"src/main/kotlin/editor/SheetPanel.kt"},{"n":9,"tool":"Grep","target":"Tabs","empty":true},{"n":10,"tool":"Glob","target":"**/*Tab*"},{"n":11,"tool":"Read","target":"src/main/kotlin/FileTypeAndTabs.kt"},{"n":12,"tool":"Read","target":"src/main/resources/META-INF/plugin.xml"},{"n":13,"tool":"Read","target":"src/test/kotlin/FileTypeAndTabsTest.kt"}],
+   "dead_ends": [2, 9], "revisits": ["src/main/kotlin/editor/SheetPanel.kt", "src/main/resources/META-INF/plugin.xml"], "lost_at": "editor/ 패키지를 파일 타입 등록 위치로 오해 (6~8단계)"},
+  {"id": "N1-03", "category": 1, "kind": "log", "question": "미리보기 렌더링 코드는 어디 있나?", "expected": ["preview/"], "correct": true, "steps": 3, "trail": [{"n":1,"tool":"Read","target":"CLAUDE.md"},{"n":2,"tool":"Glob","target":"**/preview/**"},{"n":3,"tool":"Read","target":"src/main/kotlin/preview/JcefPreview.kt"}]},
+  {"id": "T3-01", "category": 3, "kind": "base", "question": "로컬에서 빌드 전에 무엇을 설정해야 하나?", "expected": ["gradle.properties", "JDK 21"], "correct": false, "steps": 22,
+   "trail": [{"n":1,"tool":"Read","target":"README.md"},{"n":2,"tool":"Read","target":"CLAUDE.md"},{"n":3,"tool":"Glob","target":"docs/**","empty":true},{"n":4,"tool":"Grep","target":"JAVA_HOME","empty":true},{"n":5,"tool":"Read","target":"build.gradle.kts"},{"n":6,"tool":"Read","target":"settings.gradle.kts"},{"n":7,"tool":"Grep","target":"jdk","empty":true},{"n":8,"tool":"Read","target":"gradle/wrapper/gradle-wrapper.properties"},{"n":9,"tool":"Read","target":"build.gradle.kts"},{"n":10,"tool":"Grep","target":"toolchain"},{"n":11,"tool":"Read","target":".github/workflows/check.yml"},{"n":12,"tool":"Read","target":"scripts/check.sh"},{"n":13,"tool":"Glob","target":"**/.env*","empty":true},{"n":14,"tool":"Read","target":"AGENTS.md"},{"n":15,"tool":"Read","target":".claude/rules/build-and-deps.md"},{"n":16,"tool":"Read","target":"build.gradle.kts"},{"n":17,"tool":"Grep","target":"installations","empty":true},{"n":18,"tool":"Read","target":"README.md"},{"n":19,"tool":"Glob","target":"*.properties"},{"n":20,"tool":"Read","target":"gradle.properties"},{"n":21,"tool":"Read","target":".claude/rules/testing.md"},{"n":22,"tool":"Read","target":"CLAUDE.md"}],
+   "dead_ends": [3, 4, 7, 13, 17], "revisits": ["README.md", "CLAUDE.md", "build.gradle.kts"], "lost_at": "설정 문서가 없어 build.gradle.kts를 3번 다시 읽음", "drift": true},
+  {"id": "T3-02", "category": 3, "kind": "custom", "question": "시트 파서가 1MB 이상 파일을 거부하는 이유는?", "expected": [".claude/rules/errors-and-limits.md"], "correct": true, "steps": 5, "trail": [{"n":1,"tool":"Read","target":"CLAUDE.md"},{"n":2,"tool":"Grep","target":"1MB"},{"n":3,"tool":"Read","target":".claude/rules/errors-and-limits.md"},{"n":4,"tool":"Read","target":"src/main/kotlin/format/Limits.kt"},{"n":5,"tool":"Read","target":"src/test/kotlin/LimitsTest.kt"}]},
+  {"id": "V5-01", "category": 5, "kind": "base", "question": "변경 후 CI를 통과하려면 무엇을 실행해야 하나?", "expected": ["./scripts/check.sh"], "correct": true, "steps": 3, "trail": [{"n":1,"tool":"Read","target":"CLAUDE.md"},{"n":2,"tool":"Read","target":".github/workflows/check.yml"},{"n":3,"tool":"Read","target":"scripts/check.sh"}]},
+  {"id": "V5-02", "category": 5, "kind": "base", "question": "단일 테스트 클래스만 실행하는 명령은?", "expected": ["./gradlew test --tests"], "correct": true, "steps": 2, "invalid": true, "trail": [{"n":1,"tool":"Grep","target":".ai-readiness/probes.md"},{"n":2,"tool":"Read","target":"CLAUDE.md"}]}
+ ],
+ "top_fixes": [
+  {"title": "로컬 설정 절차(JDK·gradle.properties)를 docs/setup.md로 문서화", "category": 3, "impact": "+6", "detail": "로그에서 같은 질문이 3번 반복됐고, 프로브 T3-01이 22단계 끝에 실패했습니다."},
+  {"title": "CLAUDE.md에 plugins/ 디렉토리 지도 추가", "category": 1, "impact": "+2"},
+  {"title": "문서의 죽은 경로 3개 정리", "category": 6, "impact": "+2"}
+ ],
+ "notes": ["로그 후보 49개 중 11개를 프로브로 사용"]
+}

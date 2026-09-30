@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Readiness Score</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --fill: #2a78d6;
+  --track: #cde2fb;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --good-ink: #006300;
+  --critical-ink: #b42f2f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --fill: #3987e5;
+    --track: #0d366b;
+    --good-ink: #0ca30c;
+    --critical-ink: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --fill: #3987e5;
+  --track: #0d366b;
+  --good-ink: #0ca30c;
+  --critical-ink: #e66767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+.sub { color: var(--ink-2); font-size: 13px; }
+.muted { color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 16px; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+
+/* header + hero */
+header { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; }
+.hero { display: flex; align-items: baseline; gap: 8px; }
+.hero .value { font-size: 64px; font-weight: 600; line-height: 1; }
+.hero .max { font-size: 20px; color: var(--ink-2); }
+.meta { display: grid; gap: 2px; text-align: right; }
+.summary { margin: 12px 0 0; color: var(--ink-2); max-width: 72ch; }
+
+/* category meters */
+.side-label { margin: 20px 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.side-label:first-of-type { margin-top: 8px; }
+details.cat { border-top: 1px solid var(--grid); }
+details.cat:last-of-type { border-bottom: 1px solid var(--grid); }
+details.cat > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 28px minmax(140px, 1.2fr) 2fr 72px; gap: 12px; align-items: center; padding: 12px 0; }
+details.cat > summary::-webkit-details-marker { display: none; }
+.num { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--grid); color: var(--ink-2); }
+.cat-name { font-weight: 600; }
+.cat-name small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12.5px; }
+.meter { position: relative; height: 12px; border-radius: 4px; background: var(--track); }
+.meter > span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--fill); min-width: 2px; }
+.meter.na { background: repeating-linear-gradient(135deg, var(--grid) 0 4px, transparent 4px 8px); }
+.score { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.score small { color: var(--ink-2); font-weight: 400; }
+.cat-body { padding: 0 0 16px 40px; display: grid; gap: 12px; }
+.verdict { color: var(--ink-2); margin: 0; }
+ul.findings, ol.fixes { margin: 0; padding-left: 18px; }
+ul.findings li { margin: 4px 0; }
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+.tag.gap { color: var(--critical-ink); }
+.tag.strength { color: var(--good-ink); }
+.evidence { color: var(--muted); }
+
+/* probes */
+.probe-summary { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0 16px; }
+.probe-summary .item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.chips { display: inline-flex; gap: 3px; }
+.chip { width: 16px; height: 16px; border-radius: 4px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
+.chip.pass { background: var(--good); }
+.chip.partial { background: var(--warning); color: #0b0b0b; }
+.chip.fail { background: var(--critical); }
+.chip.invalid { background: var(--grid); color: var(--ink-2); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 8px; }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.probe { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 12px 0; border-top: 1px solid var(--grid); }
+.probe-head { display: flex; gap: 10px; align-items: flex-start; }
+.probe-head .q { flex: 1; min-width: 0; }
+.probe-head .q .id { color: var(--muted); font-size: 12px; margin-right: 6px; }
+.probe-head .res { font-size: 12.5px; white-space: nowrap; color: var(--ink-2); }
+.trail { position: relative; display: flex; flex-wrap: wrap; gap: 2px; padding-left: 26px; }
+.step { width: 12px; height: 12px; border-radius: 3px; background: var(--fill); position: relative; }
+.step.empty { background: transparent; box-shadow: inset 0 0 0 2px var(--critical); }
+.step.revisit { background: var(--warning); }
+.step.hit { background: var(--good); color: #fff; font-size: 9px; line-height: 12px; text-align: center; font-weight: 700; }
+.step.over10 { opacity: .55; }
+.step.cut { width: 2px; background: var(--axis); border-radius: 0; margin: 0 3px; }
+.lost { padding-left: 26px; font-size: 13px; color: var(--ink-2); }
+.lost b { color: var(--ink); font-weight: 600; }
+.lost .tag { margin-left: 8px; }
+
+/* fixes */
+ol.fixes li { margin: 8px 0; }
+ol.fixes .impact { font-variant-numeric: tabular-nums; color: var(--good-ink); font-weight: 600; margin-left: 6px; font-size: 13px; }
+.notes { font-size: 12.5px; color: var(--muted); margin-top: 16px; }
+
+/* tooltip */
+#tip { position: fixed; pointer-events: none; z-index: 10; max-width: 360px; padding: 8px 10px; border-radius: 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,.18); font-size: 12.5px; display: none; }
+
+@media (max-width: 640px) {
+  details.cat > summary { grid-template-columns: 28px 1fr 64px; }
+  details.cat > summary .meter { grid-column: 2 / 4; grid-row: 2; }
+  .cat-body { padding-left: 0; }
+  .meta { text-align: left; }
+  .hero .value { font-size: 52px; }
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="tip" role="tooltip"></div>
+<script id="score-data" type="application/json">__SCORE_JSON__</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("score-data").textContent);
+  var ko = data.lang === "ko";
+  var T = ko ? {
+    title: "AI 준비도 점수", input: "입력 측 · 정적 점검", outcome: "결과 측 · 에이전트 프로브",
+    probes: "에이전트가 길을 잃는 곳", probesSub: "맥락 없는 새 에이전트가 질문 하나를 풀 때 거친 단계. 한 칸 = tool call 1회.",
+    fixes: "먼저 고칠 것", gap: "부족", strength: "강점", na: "N/A (quick 모드)", generated: "생성",
+    pass: "통과", partial: "통과(헤맴)", fail: "실패", invalid: "무효", steps: "단계",
+    lostAt: "헤맨 지점", deadEnd: "빈 결과", revisit: "재방문", over10: "10단계 초과", expected: "정답",
+    answer: "답변", drift: "문서와 코드 불일치", noProbes: "프로브를 실행하지 않았습니다.",
+    trend: "7번은 추세 지표입니다. 실행마다 약간 흔들릴 수 있습니다.", fixesNone: "개선 제안이 없습니다.",
+    kinds: { base: "기본형", log: "로그형", custom: "커스텀" }, files: "파일", probeModel: "프로브 모델",
+    invalidWhy: "금지된 경로(정답 파일 등)에 접근해서 점수에서 제외",
+    found: "정답 도달", foundAt: "{n}단계에 정답"
+  } : {
+    title: "AI-Readiness Score", input: "Input side · static checks", outcome: "Outcome side · agent probes",
+    probes: "Where agents get lost", probesSub: "Steps a fresh, context-free agent took to answer each question. One square = one tool call.",
+    fixes: "Fix first", gap: "Gap", strength: "Strength", na: "N/A (quick mode)", generated: "Generated",
+    pass: "Pass", partial: "Pass (wandered)", fail: "Fail", invalid: "Invalid", steps: "steps",
+    lostAt: "Lost at", deadEnd: "empty result", revisit: "revisited file", over10: "past 10 steps", expected: "Expected",
+    answer: "Answer", drift: "doc/code drift", noProbes: "No probes were run.",
+    trend: "Category 7 is a trend indicator; small run-to-run swings are expected.", fixesNone: "No fixes suggested.",
+    kinds: { base: "base", log: "log", custom: "custom" }, files: "files", probeModel: "probe model",
+    invalidWhy: "touched a forbidden path (e.g. the answer file); excluded from the score",
+    found: "reached the answer", foundAt: "answer at step {n}"
+  };
+  var DESC = ko ? {
+    1: "진입점 명시, 디렉토리 구조의 명확성", 2: "CLAUDE.md·가이드 문서의 정보 밀도·정확도",
+    3: "머릿속 지식이 문서로 외화됐는가", 4: "모듈 의존, 순환 의존, god file",
+    5: "테스트·린터·CI 게이트의 신뢰도", 6: "문서·코드 drift, 마지막 갱신 시점", 7: "새 에이전트가 첫 시도에 성공하는가"
+  } : {
+    1: "Entry points and directory clarity", 2: "Density and accuracy of CLAUDE.md and guides",
+    3: "Tacit knowledge written down", 4: "Module deps, cycles, god files",
+    5: "Reliability of tests, linters, CI gates", 6: "Doc/code drift and last update", 7: "Does a fresh agent succeed on the first try?"
+  };
+  var ICON = { pass: "✓", partial: "◐", fail: "✕", invalid: "–" };
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    for (var k in (attrs || {})) {
+      if (k === "text") n.textContent = attrs[k];
+      else if (k === "class") n.className = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    (kids || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function fmt(x) { return x == null ? "–" : (Math.round(x * 10) / 10).toString(); }
+
+  document.title = T.title + " · " + (data.repo_name || "");
+  document.documentElement.lang = ko ? "ko" : "en";
+  var app = document.getElementById("app");
+
+  // Header + hero figure
+  var date = data.generated_at ? new Date(data.generated_at) : null;
+  app.appendChild(el("header", {}, [
+    el("div", {}, [
+      el("h1", { text: T.title }),
+      el("div", { class: "sub mono", text: data.repo_name || data.repo || "" }),
+      el("div", { class: "hero", style: "margin-top:12px" }, [
+        el("span", { class: "value", text: fmt(data.total) }),
+        el("span", { class: "max", text: "/ " + (data.max || 100) })
+      ])
+    ]),
+    el("div", { class: "meta sub" }, [
+      el("span", { text: T.generated + " " + (date ? date.toLocaleString(ko ? "ko-KR" : "en-US") : "") }),
+      el("span", { text: "mode: " + (data.mode || "full") + (data.skill_version ? " · v" + data.skill_version : "") }),
+      data.probe_model ? el("span", { text: T.probeModel + ": " + data.probe_model }) : null
+    ])
+  ]));
+  if (data.summary) app.appendChild(el("p", { class: "summary", text: data.summary }));
+
+  // Categories
+  var catCard = el("section", { class: "card" });
+  var cats = (data.categories || []).slice().sort(function (a, b) { return a.id - b.id; });
+  [["input", T.input], ["outcome", T.outcome]].forEach(function (side) {
+    var group = cats.filter(function (c) { return (c.id === 7 ? "outcome" : "input") === side[0]; });
+    if (!group.length) return;
+    catCard.appendChild(el("div", { class: "side-label", text: side[1] }));
+    group.forEach(function (c) {
+      var na = c.score == null;
+      var pct = na ? 0 : Math.max(0, Math.min(100, 100 * c.score / c.max));
+      var meter = el("div", { class: "meter" + (na ? " na" : ""), "data-tip": na ? T.na : fmt(c.score) + " / " + c.max + " (" + Math.round(pct) + "%)" },
+        na ? [] : [el("span", { style: "width:" + pct + "%" })]);
+      var body = el("div", { class: "cat-body" });
+      if (c.verdict) body.appendChild(el("p", { class: "verdict", text: c.verdict }));
+      if ((c.findings || []).length) {
+        body.appendChild(el("ul", { class: "findings" }, c.findings.map(function (f) {
+          var kind = f.type === "strength" ? "strength" : "gap";
+          return el("li", {}, [
+            el("span", { class: "tag " + kind, text: (kind === "gap" ? "✕ " : "✓ ") + T[kind] }),
+            f.text,
+            (f.evidence || []).length ? el("div", { class: "evidence mono", text: f.evidence.join(" · ") }) : null
+          ]);
+        })));
+      }
+      if ((c.fixes || []).length) body.appendChild(el("ol", { class: "fixes" }, c.fixes.map(function (x) { return el("li", { text: x }); })));
+      catCard.appendChild(el("details", { class: "cat" }, [
+        el("summary", {}, [
+          el("span", { class: "num", text: String(c.id) }),
+          el("span", { class: "cat-name" }, [c.name || "", el("small", { text: DESC[c.id] || "" })]),
+          meter,
+          el("span", { class: "score" }, [na ? "N/A" : fmt(c.score), el("small", { text: " / " + c.max })])
+        ]),
+        body
+      ]));
+    });
+  });
+  app.appendChild(catCard);
+
+  // Probes: where agents get lost
+  var probes = data.probes || [];
+  var pc = el("section", { class: "card" }, [el("h2", { text: T.probes }), el("div", { class: "sub", text: T.probesSub })]);
+  if (!probes.length) {
+    pc.appendChild(el("p", { class: "muted", text: data.mode === "quick" ? T.na : T.noProbes }));
+  } else {
+    var byCat = {};
+    probes.forEach(function (p) { (byCat[p.category] = byCat[p.category] || []).push(p); });
+    pc.appendChild(el("div", { class: "probe-summary" }, Object.keys(byCat).sort().map(function (k) {
+      var ps = byCat[k], valid = ps.filter(function (p) { return p.result !== "invalid"; });
+      var passed = valid.filter(function (p) { return p.result === "pass" || p.result === "partial"; }).length;
+      var cat = cats.filter(function (c) { return String(c.id) === String(k); })[0];
+      return el("div", { class: "item" }, [
+        el("span", { class: "num", text: k }),
+        el("span", { text: (cat ? cat.name : "") + " " }),
+        el("b", { class: "mono", text: passed + "/" + valid.length }),
+        el("span", { class: "chips" }, ps.map(function (p) {
+          return el("span", { class: "chip " + p.result, "data-tip": p.id + " · " + T[p.result], text: ICON[p.result] });
+        }))
+      ]);
+    })));
+    pc.appendChild(el("div", { class: "legend" }, [
+      el("span", {}, [el("span", { class: "step" }), T.steps]),
+      el("span", {}, [el("span", { class: "step empty" }), T.deadEnd]),
+      el("span", {}, [el("span", { class: "step revisit" }), T.revisit]),
+      el("span", {}, [el("span", { class: "step hit", text: "✓" }), T.found]),
+      el("span", {}, [el("span", { class: "step cut" }), "10 / 20"])
+    ]));
+    probes.forEach(function (p) {
+      var dead = {}, seen = {};
+      (p.dead_ends || []).forEach(function (n) { dead[n] = 1; });
+      var trail = el("div", { class: "trail", "aria-label": (p.steps || 0) + " " + T.steps });
+      (p.trail || []).forEach(function (s) {
+        if (s.n === 11 || s.n === 21) trail.appendChild(el("span", { class: "step cut", "aria-hidden": "true" }));
+        // Only the second and later reads of the same file count as a revisit.
+        var again = s.tool === "Read" && s.target && seen[s.target];
+        if (s.tool === "Read" && s.target) seen[s.target] = 1;
+        var hit = s.n === p.answer_step;
+        var cls = "step" + (hit ? " hit" : dead[s.n] || s.empty ? " empty" : again ? " revisit" : "") + (s.n > 10 ? " over10" : "");
+        trail.appendChild(el("span", { class: cls, text: hit ? "✓" : "", "data-tip": "#" + s.n + " " + s.tool + (s.target ? "  " + s.target : "") + (s.empty ? "  (" + T.deadEnd + ")" : "") + (hit ? "  (" + T.found + ")" : "") }));
+      });
+      var tip = [T.expected + ": " + (p.expected || []).join(", "), p.answer ? T.answer + ": " + p.answer : ""].filter(Boolean).join("\n");
+      pc.appendChild(el("div", { class: "probe" }, [
+        el("div", { class: "probe-head" }, [
+          el("span", { class: "chip " + p.result, text: ICON[p.result], "data-tip": T[p.result] + (p.result === "invalid" ? " · " + T.invalidWhy : "") }),
+          el("div", { class: "q", "data-tip": tip }, [el("span", { class: "id mono", text: p.id + " · " + (T.kinds[p.kind] || p.kind || "") }), p.question || ""]),
+          el("span", { class: "res", text: T[p.result] + " · " + (p.answer_step ? T.foundAt.replace("{n}", p.answer_step) + " / " : "") + (p.steps == null ? "?" : p.steps) + " " + T.steps })
+        ]),
+        trail,
+        p.lost_at || p.drift ? el("div", { class: "lost" }, [
+          p.lost_at ? el("b", { text: T.lostAt + ": " }) : null, p.lost_at || "",
+          p.drift ? el("span", { class: "tag gap", text: "✕ " + T.drift }) : null
+        ]) : null
+      ]));
+    });
+    pc.appendChild(el("div", { class: "notes", text: T.trend }));
+  }
+  app.appendChild(pc);
+
+  // Fix first
+  var fixes = data.top_fixes || [];
+  app.appendChild(el("section", { class: "card" }, [
+    el("h2", { text: T.fixes }),
+    fixes.length ? el("ol", { class: "fixes" }, fixes.map(function (f) {
+      return el("li", {}, [
+        el("b", { text: f.title || "" }),
+        f.impact ? el("span", { class: "impact", text: f.impact }) : null,
+        f.category ? el("span", { class: "muted", text: "  · #" + f.category }) : null,
+        f.detail ? el("div", { class: "sub", text: f.detail }) : null
+      ]);
+    })) : el("p", { class: "muted", text: T.fixesNone })
+  ]));
+  if ((data.notes || []).length) app.appendChild(el("div", { class: "notes" }, data.notes.map(function (n) { return el("div", { text: n }); })));
+
+  // Hover layer: one tooltip for every element that carries data-tip.
+  var tipEl = document.getElementById("tip");
+  document.addEventListener("mousemove", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if (!t) { tipEl.style.display = "none"; return; }
+    tipEl.textContent = t.getAttribute("data-tip");
+    tipEl.style.whiteSpace = "pre-line";
+    tipEl.style.display = "block";
+    var x = Math.min(e.clientX + 14, window.innerWidth - tipEl.offsetWidth - 8);
+    var y = e.clientY + 16 + tipEl.offsetHeight > window.innerHeight ? e.clientY - tipEl.offsetHeight - 10 : e.clientY + 16;
+    tipEl.style.left = Math.max(8, x) + "px";
+    tipEl.style.top = y + "px";
+  });
+})();
+</script>
+</body>
+</html>
